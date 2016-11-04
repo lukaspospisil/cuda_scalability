@@ -87,7 +87,7 @@ int main( int argc, char *argv[] )
 	double times4[LEVELS];
 	
 #ifdef USE_CUDA
-	float ms;
+	double ms;
 	cudaEvent_t startEvent, stopEvent;
 	gpuErrchk( cudaEventCreate(&startEvent) );
 	gpuErrchk( cudaEventCreate(&stopEvent) );	
@@ -120,11 +120,9 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 			gpuErrchk( cudaEventRecord(stopEvent,0) );
 
-			times1[level] = getUnixTime() - timer;
-			std::cout << " - call naive: " << times1[level] << "s" << std::endl;
-			
 			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
-			std::cout << " - call naive: " << ms << "s" << std::endl;
+			times1[level] = ms;
+			std::cout << " - call naive: " << times1[level] << " ms" << std::endl;
 		}
 
 		if(CALL_OPTIMAL){
@@ -139,12 +137,10 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() ); 
 			gpuErrchk( cudaEventRecord(stopEvent,0) );
 
-			times2[level] = getUnixTime() - timer;
-			std::cout << " - call optimal: " << times2[level] << "s" << std::endl;
-			std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
-
 			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
-			std::cout << " - call optimal: " << ms << "s" << std::endl;
+			times2[level] = ms;
+			std::cout << " - call optimal: " << times2[level] << " ms" << std::endl;
+			std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
 
 		}
 
@@ -156,11 +152,9 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 			gpuErrchk( cudaEventRecord(stopEvent,0) );
 
-			times4[level] = getUnixTime() - timer;
-			std::cout << " - call test: " << times4[level] << "s" << std::endl;
-
 			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
-			std::cout << " - call test: " << ms << "s" << std::endl;
+			times4[level] = ms;
+			std::cout << " - call test: " << ms << " ms" << std::endl;
 
 		}
 
