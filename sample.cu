@@ -112,7 +112,7 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 
 			times1[level] = getUnixTime() - timer;
-			std::cout << " - call naive: " << times1[level] << " ms" << std::endl;
+			std::cout << " - call naive: " << times1[level] << "s" << std::endl;
 		}
 
 		if(CALL_OPTIMAL){
@@ -126,7 +126,7 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() ); 
 
 			times2[level] = getUnixTime() - timer;
-			std::cout << " - call optimal: " << times2[level] << " ms" << std::endl;
+			std::cout << " - call optimal: " << times2[level] << "s" << std::endl;
 			std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
 
 		}
@@ -138,7 +138,7 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 
 			times4[level] = getUnixTime() - timer;
-			std::cout << " - call test: " << ms << " ms" << std::endl;
+			std::cout << " - call test: " << ms << "s" << std::endl;
 
 		}
 
