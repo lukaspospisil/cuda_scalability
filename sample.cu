@@ -262,8 +262,8 @@ int main( int argc, char *argv[] )
 	std::cout << std::endl;
 
 #ifdef USE_CUDA
-	gpuErrchk( cudaEventDestroy(&startEvent) );
-	gpuErrchk( cudaEventDestroy(&stopEvent) );	
+	gpuErrchk( cudaEventDestroy(startEvent) );
+	gpuErrchk( cudaEventDestroy(stopEvent) );	
 #endif
 	
 	return 0;
