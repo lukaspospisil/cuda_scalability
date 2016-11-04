@@ -3,10 +3,10 @@
 
 
 /* the length of testing vector */
-#define T 1000000
+#define T 10000000
 
 /* the number of levels (number fo subproblems) */
-#define LEVELS 5
+#define LEVELS 20
 
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
