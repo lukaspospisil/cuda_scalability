@@ -3,7 +3,7 @@
 
 
 /* the length of testing vector */
-#define T 10000000
+#define T 100000000
 
 /* the number of levels (number fo subproblems) */
 #define LEVELS 20
