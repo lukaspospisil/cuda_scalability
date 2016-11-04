@@ -6,7 +6,7 @@
 #define T 1000000
 
 /* the number of levels (number fo subproblems) */
-#define LEVELS 3
+#define LEVELS 5
 
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
@@ -80,6 +80,10 @@ int main( int argc, char *argv[] )
 	std::cout << std::endl;
 
 	double timer;
+	double times1[LEVELS];
+	double times2[LEVELS];
+	double times3[LEVELS];
+	
 	double *x_arr; /* my array on GPU */
 	int mysize; /* the lenght of alocated vector (array) */
 
@@ -105,7 +109,8 @@ int main( int argc, char *argv[] )
 			mykernel<<<1, mysize>>>(x_arr,mysize); 
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 
-			std::cout << " - call naive: " << getUnixTime() - timer << "s" << std::endl;
+			times1[level] = getUnixTime() - timer;
+			std::cout << " - call naive: " << times1[level] << "s" << std::endl;
 		}
 
 		if(CALL_OPTIMAL){
@@ -118,7 +123,8 @@ int main( int argc, char *argv[] )
 			mykernel<<<gridSize, blockSize>>>(x_arr, mysize);
 			gpuErrchk( cudaDeviceSynchronize() ); 
 
-			std::cout << " - call optimal: " << getUnixTime() - timer << "s" << std::endl;
+			times2[level] = getUnixTime() - timer;
+			std::cout << " - call optimal: " << times2[level] << "s" << std::endl;
 			std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
 
 		}
@@ -151,7 +157,9 @@ int main( int argc, char *argv[] )
 		for(int i=0;i<mysize;i++){
 			x_arr[i] = i;
 		}
-		std::cout << " - call sequential: " << getUnixTime() - timer << "s" << std::endl;
+
+		times3[level] = getUnixTime() - timer;
+		std::cout << " - call sequential: " << times3[level] << "s" << std::endl;
 		
 		/* print array */
 		if(PRINT_VECTOR_CONTENT){
@@ -176,7 +184,39 @@ int main( int argc, char *argv[] )
 	}
 
 
+	/* final print of timers */
+	std::cout << std::endl;
+	std::cout << "---- TIMERS ----" << std::endl;
+#ifdef USE_CUDA
+	if(CALL_NAIVE){
+		std::cout << " GPU naive   = [";
+		for(int i=0;i<LEVELS;i++){
+			std::cout << " " << times1[i];
+			if(i < LEVELS-1) std::cout << ",";
+		}
+		std::cout << " ]" << std::endl;
+	}
 
+	if(CALL_OPTIMAL){
+		std::cout << " GPU optimal = [";
+		for(int i=0;i<LEVELS;i++){
+			std::cout << " " << times2[i];
+			if(i < LEVELS-1) std::cout << ",";
+		}
+		std::cout << " ]" << std::endl;
+	}
+
+#else
+	std::cout << " CPU seq    = [";
+	for(int i=0;i<LEVELS;i++){
+		std::cout << " " << times3[i];
+		if(i < LEVELS-1) std::cout << ",";
+	}
+	std::cout << " ]" << std::endl;
+#endif
+	std::cout << std::endl;
+	
+	
 	return 0;
 }
 
