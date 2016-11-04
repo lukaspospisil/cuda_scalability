@@ -1,0 +1,6 @@
+#
+# script loads the right modules on ANSELM machine
+#
+
+module load cmake
+module load cuda
