@@ -138,7 +138,7 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 
 			times4[level] = getUnixTime() - timer;
-			std::cout << " - call test: " << ms << "s" << std::endl;
+			std::cout << " - call test: " << times4[level] << "s" << std::endl;
 
 		}
 
