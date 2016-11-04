@@ -86,6 +86,13 @@ int main( int argc, char *argv[] )
 	double times3[LEVELS];
 	double times4[LEVELS];
 	
+#ifdef USE_CUDA
+	float ms;
+	cudaEvent_t startEvent, stopEvent;
+	gpuErrchk( cudaEventCreate(&startEvent) );
+	gpuErrchk( cudaEventCreate(&stopEvent) );	
+#endif
+	
 	double *x_arr; /* my array on GPU */
 	int mysize; /* the lenght of alocated vector (array) */
 
@@ -108,11 +115,16 @@ int main( int argc, char *argv[] )
 			/* the easiest call */
 			timer = getUnixTime();
 
+			gpuErrchk( cudaEventRecord(startEvent,0) );
 			mykernel<<<1, mysize>>>(x_arr,mysize); 
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+			gpuErrchk( cudaEventRecord(stopEvent,0) );
 
 			times1[level] = getUnixTime() - timer;
 			std::cout << " - call naive: " << times1[level] << "s" << std::endl;
+			
+			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
+			std::cout << " - call naive: " << ms << "s" << std::endl;
 		}
 
 		if(CALL_OPTIMAL){
@@ -122,23 +134,34 @@ int main( int argc, char *argv[] )
 
 			timer = getUnixTime();
 			
+			gpuErrchk( cudaEventRecord(startEvent,0) );
 			mykernel<<<blockSize, gridSize>>>(x_arr, mysize);
 			gpuErrchk( cudaDeviceSynchronize() ); 
+			gpuErrchk( cudaEventRecord(stopEvent,0) );
 
 			times2[level] = getUnixTime() - timer;
 			std::cout << " - call optimal: " << times2[level] << "s" << std::endl;
 			std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
+
+			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
+			std::cout << " - call optimal: " << ms << "s" << std::endl;
 
 		}
 
 		if(CALL_TEST){
 			timer = getUnixTime();
 
-			mykernel<<<>>>(x_arr,mysize); 
+			gpuErrchk( cudaEventRecord(startEvent,0) );
+			mykernel<<<mysize,1>>>(x_arr,mysize); 
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+			gpuErrchk( cudaEventRecord(stopEvent,0) );
 
 			times4[level] = getUnixTime() - timer;
 			std::cout << " - call test: " << times4[level] << "s" << std::endl;
+
+			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
+			std::cout << " - call test: " << ms << "s" << std::endl;
+
 		}
 
 
@@ -237,7 +260,11 @@ int main( int argc, char *argv[] )
 	std::cout << " ]" << std::endl;
 #endif
 	std::cout << std::endl;
-	
+
+#ifdef USE_CUDA
+	gpuErrchk( cudaEventDestroy(&startEvent) );
+	gpuErrchk( cudaEventDestroy(&stopEvent) );	
+#endif
 	
 	return 0;
 }
