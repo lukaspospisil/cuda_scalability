@@ -15,6 +15,13 @@
 #define CALL_NAIVE 1
 #define CALL_OPTIMAL 1
 
+/* for measuring time */
+double getUnixTime(void){
+	struct timespec tv;
+	if(clock_gettime(CLOCK_REALTIME, &tv) != 0) return 0;
+	return (((double) tv.tv_sec) + (double) (tv.tv_nsec / 1000000000.0));
+}
+
 #ifdef USE_CUDA
 /* CUDA stuff: */
 #include <stdio.h>
@@ -71,7 +78,8 @@ int main( int argc, char *argv[] )
 	std::cout << " T          = " << T << std::endl;
 	std::cout << " LEVELS     = " << LEVELS << std::endl;
 	std::cout << std::endl;
-		
+
+	double timer;
 	double *x_arr; /* my array on GPU */
 	int mysize; /* the lenght of alocated vector (array) */
 
@@ -84,57 +92,85 @@ int main( int argc, char *argv[] )
 /* ------- CUDA version ------- */
 
 		/* allocate array */
+		timer = getUnixTime(); /* start to measure time */
 		gpuErrchk( cudaMalloc(&x_arr, sizeof(double)*mysize) );
+		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
+		
 		
 		/* fill array */
 		if(CALL_NAIVE){
 			/* the easiest call */
+			timer = getUnixTime();
+
 			mykernel<<<1, mysize>>>(x_arr,mysize); 
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+
+			std::cout << " - call naive: " << getUnixTime() - timer << "s" << std::endl;
 		}
 
 		if(CALL_OPTIMAL){
 			int minGridSize, blockSize, gridSize;
 			gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel, 0, 0) );
 			gridSize = (mysize + blockSize - 1)/ blockSize;
-			std::cout << " - gridSize = " << gridSize << ", blockSize = " << blockSize << std::endl;
+
+			timer = getUnixTime();
 			
 			mykernel<<<gridSize, blockSize>>>(x_arr, mysize);
 			gpuErrchk( cudaDeviceSynchronize() ); 
+
+			std::cout << " - call optimal: " << getUnixTime() - timer << "s" << std::endl;
+			std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
+
 		}
 
 		/* print array */
 		if(PRINT_VECTOR_CONTENT){
+			timer = getUnixTime();
+
 			printkernel<<<1,1>>>(x_arr,mysize);
 			gpuErrchk( cudaDeviceSynchronize() );
+
+			std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
 		}
 
 		/* destroy array */
+		timer = getUnixTime();
 		gpuErrchk( cudaFree(x_arr) );
+		std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
 
 #else
 /* ------- SEQUENTIAL version ------- */
 
 		/* allocate array */
+		timer = getUnixTime();
 		x_arr = new double[mysize];
+		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
 
 		/* fill array */
+		timer = getUnixTime();
 		for(int i=0;i<mysize;i++){
 			x_arr[i] = i;
 		}
+		std::cout << " - call sequential: " << getUnixTime() - timer << "s" << std::endl;
 		
 		/* print array */
 		if(PRINT_VECTOR_CONTENT){
+			timer = getUnixTime();
+
 			std::cout << "  [";
 			for(int i=0;i<mysize;i++){
 				std::cout << " " << x_arr[i];
 				if(i < mysize-1) std::cout << ",";
 			}
 			std::cout << " ]" << std::endl;
+
+			std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
 		}
 		
 		/* destroy array */
+		timer = getUnixTime();
 		delete [] x_arr;
+		std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
 #endif
 
 	}
