@@ -14,6 +14,7 @@
 /* which CUDA calls to test? */
 #define CALL_NAIVE 1
 #define CALL_OPTIMAL 1
+#define CALL_TEST 1
 
 /* for measuring time */
 double getUnixTime(void){
@@ -83,6 +84,7 @@ int main( int argc, char *argv[] )
 	double times1[LEVELS];
 	double times2[LEVELS];
 	double times3[LEVELS];
+	double times4[LEVELS];
 	
 	double *x_arr; /* my array on GPU */
 	int mysize; /* the lenght of alocated vector (array) */
@@ -128,6 +130,17 @@ int main( int argc, char *argv[] )
 			std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
 
 		}
+
+		if(CALL_TEST){
+			timer = getUnixTime();
+
+			mykernel<<<>>>(x_arr,mysize); 
+			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+
+			times4[level] = getUnixTime() - timer;
+			std::cout << " - call test: " << times4[level] << "s" << std::endl;
+		}
+
 
 		/* print array */
 		if(PRINT_VECTOR_CONTENT){
@@ -201,6 +214,15 @@ int main( int argc, char *argv[] )
 		std::cout << " GPU optimal = [";
 		for(int i=0;i<LEVELS;i++){
 			std::cout << " " << times2[i];
+			if(i < LEVELS-1) std::cout << ",";
+		}
+		std::cout << " ]" << std::endl;
+	}
+
+	if(CALL_TEST){
+		std::cout << " GPU test    = [";
+		for(int i=0;i<LEVELS;i++){
+			std::cout << " " << times4[i];
 			if(i < LEVELS-1) std::cout << ",";
 		}
 		std::cout << " ]" << std::endl;
