@@ -87,7 +87,7 @@ int main( int argc, char *argv[] )
 	double times4[LEVELS];
 	
 #ifdef USE_CUDA
-	double ms;
+	float ms;
 	cudaEvent_t startEvent, stopEvent;
 	gpuErrchk( cudaEventCreate(&startEvent) );
 	gpuErrchk( cudaEventCreate(&stopEvent) );	
@@ -117,8 +117,9 @@ int main( int argc, char *argv[] )
 
 			gpuErrchk( cudaEventRecord(startEvent,0) );
 			mykernel<<<1, mysize>>>(x_arr,mysize); 
-			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+//			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 			gpuErrchk( cudaEventRecord(stopEvent,0) );
+			gpuErrchk( cudaEventSynchronize(stopEvent) );
 
 			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
 			times1[level] = ms;
@@ -134,8 +135,9 @@ int main( int argc, char *argv[] )
 			
 			gpuErrchk( cudaEventRecord(startEvent,0) );
 			mykernel<<<blockSize, gridSize>>>(x_arr, mysize);
-			gpuErrchk( cudaDeviceSynchronize() ); 
+//			gpuErrchk( cudaDeviceSynchronize() ); 
 			gpuErrchk( cudaEventRecord(stopEvent,0) );
+			gpuErrchk( cudaEventSynchronize(stopEvent) );
 
 			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
 			times2[level] = ms;
@@ -149,8 +151,9 @@ int main( int argc, char *argv[] )
 
 			gpuErrchk( cudaEventRecord(startEvent,0) );
 			mykernel<<<mysize,1>>>(x_arr,mysize); 
-			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+//			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 			gpuErrchk( cudaEventRecord(stopEvent,0) );
+			gpuErrchk( cudaEventSynchronize(stopEvent) );
 
 			gpuErrchk( cudaEventElapsedTime(&ms, startEvent, stopEvent) );
 			times4[level] = ms;
