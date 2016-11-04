@@ -1,6 +1,6 @@
 #include <iostream>
 #include <math.h>
-
+#include <time.h>
 
 /* the length of testing vector */
 #define T 100000000
@@ -120,7 +120,7 @@ int main( int argc, char *argv[] )
 
 			timer = getUnixTime();
 			
-			mykernel<<<gridSize, blockSize>>>(x_arr, mysize);
+			mykernel<<<blockSize, gridSize>>>(x_arr, mysize);
 			gpuErrchk( cudaDeviceSynchronize() ); 
 
 			times2[level] = getUnixTime() - timer;

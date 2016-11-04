@@ -36,4 +36,5 @@ if(${USE_CUDA})
 else ()
 	# compile using standart c++ compiler
 	add_executable(sample sample.cpp)
+	target_link_libraries(sample "-lrt;")
 endif()
