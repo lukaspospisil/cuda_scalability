@@ -43,8 +43,21 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 __global__ void mykernel(double *x_arr, int mysize){
 	int i = blockIdx.x*blockDim.x + threadIdx.x; /* compute my id */
 
-	if(i<mysize){ /* maybe we call more than n_local kernels */
+	if(i<mysize){ /* maybe we call more than mysize kernels */
 		x_arr[i] = i;
+	}
+
+	/* i >= mysize then relax and do nothing */	
+}
+
+/* kernel called in this example */
+__global__ void mykernel_block(double *x_arr, int mysize, int blocksize){
+	int block_i = blockIdx.x*blockDim.x + threadIdx.x; /* compute my id */
+
+	for(int i=block_i*blocksize;i<(block_i)*blocksize){
+		if(i < mysize){
+			x_arr[i] = i;
+		}
 	}
 
 	/* i >= mysize then relax and do nothing */	
@@ -96,12 +109,12 @@ int main( int argc, char *argv[] )
 
 #ifdef USE_CUDA
 /* ------- CUDA version ------- */
+		int minGridSize, blockSize, gridSize;
 
 		/* allocate array */
 		timer = getUnixTime(); /* start to measure time */
 		gpuErrchk( cudaMalloc(&x_arr, sizeof(double)*mysize) );
 		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
-		
 		
 		/* fill array */
 		if(CALL_NAIVE){
@@ -116,7 +129,6 @@ int main( int argc, char *argv[] )
 		}
 
 		if(CALL_OPTIMAL){
-			int minGridSize, blockSize, gridSize;
 			gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel, 0, 0) );
 			gridSize = (mysize + blockSize - 1)/ blockSize;
 
@@ -134,14 +146,19 @@ int main( int argc, char *argv[] )
 		if(CALL_TEST){
 			timer = getUnixTime();
 
-			mykernel<<<mysize,1>>>(x_arr,mysize); 
+			int thread_blocksize = 10;
+			int nmb_block = ceil(mysize/(double)thread_blocksize);
+
+			gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel_block, 0, 0) );
+			gridSize = (nmb_block + blockSize - 1)/ blockSize;
+
+			mykernel_block<<<mysize,1>>>(x_arr,mysize,thread_blocksize); 
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 
 			times4[level] = getUnixTime() - timer;
 			std::cout << " - call test: " << times4[level] << "s" << std::endl;
 
 		}
-
 
 		/* print array */
 		if(PRINT_VECTOR_CONTENT){
