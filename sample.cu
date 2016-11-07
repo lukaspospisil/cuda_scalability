@@ -3,16 +3,17 @@
 #include <time.h>
 
 /* the length of testing vector */
-#define T 10000000
+#define T 100000000
 
 /* the number of levels (number fo subproblems) */
-#define LEVELS 5
+#define LEVELS 50
 
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
 
 /* number of performed tests */
-#define NMB_OF_TEST 100
+#define NMB_OF_TEST_CPU 10
+#define NMB_OF_TEST_GPU 1000000
 
 /* which CUDA calls to test? */
 #define CALL_NAIVE 1
@@ -124,7 +125,7 @@ int main( int argc, char *argv[] )
 			/* the easiest call */
 			timer = getUnixTime();
 
-			for(int k=0;k<NMB_OF_TEST;k++){
+			for(int k=0;k<NMB_OF_TEST_GPU;k++){
 				mykernel<<<1, mysize>>>(x_arr,mysize); 
 				gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 			}
@@ -139,7 +140,7 @@ int main( int argc, char *argv[] )
 
 			timer = getUnixTime();
 			
-			for(int k=0;k<NMB_OF_TEST;k++){
+			for(int k=0;k<NMB_OF_TEST_GPU;k++){
 				mykernel<<<blockSize, gridSize>>>(x_arr, mysize);
 				gpuErrchk( cudaDeviceSynchronize() ); 
 			}
@@ -153,14 +154,16 @@ int main( int argc, char *argv[] )
 		if(CALL_TEST){
 			timer = getUnixTime();
 
-			int thread_blocksize = 1;
-			int nmb_block = ceil(mysize/(double)thread_blocksize);
+//			int thread_blocksize = 1;
+//			int nmb_block = ceil(mysize/(double)thread_blocksize);
 
-			gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel_block, 0, 0) );
-			gridSize = (nmb_block + blockSize - 1)/ blockSize;
-
-			mykernel_block<<<blockSize,gridSize>>>(x_arr,mysize,thread_blocksize);
-			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+//			gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel_block, 0, 0) );
+//			gridSize = (nmb_block + blockSize - 1)/ blockSize;
+			
+			for(int k=0;k<NMB_OF_TEST_GPU;k++){
+				mykernel<<<gridSize,blockSize>>>(x_arr,mysize);
+				gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+			}
 
 			times4[level] = getUnixTime() - timer;
 			std::cout << " - call test: " << times4[level] << "s" << std::endl;
@@ -193,7 +196,7 @@ int main( int argc, char *argv[] )
 		/* fill array */
 		timer = getUnixTime();
 
-		for(int k=0;k<NMB_OF_TEST;k++){
+		for(int k=0;k<NMB_OF_TEST_CPU;k++){
 			for(int i=0;i<mysize;i++){
 				x_arr[i] = i;
 			}
