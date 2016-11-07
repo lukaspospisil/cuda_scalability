@@ -6,7 +6,7 @@
 #define T 100000000
 
 /* the number of levels (number fo subproblems) */
-#define LEVELS 50
+#define LEVELS 50 
 
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
