@@ -11,10 +11,13 @@
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
 
+/* number of performed tests */
+#define NMB_OF_TEST 100
+
 /* which CUDA calls to test? */
 #define CALL_NAIVE 1
 #define CALL_OPTIMAL 1
-#define CALL_TEST 1
+#define CALL_TEST 0
 
 /* for measuring time */
 double getUnixTime(void){
@@ -121,8 +124,10 @@ int main( int argc, char *argv[] )
 			/* the easiest call */
 			timer = getUnixTime();
 
-			mykernel<<<1, mysize>>>(x_arr,mysize); 
-			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+			for(int k=0;k<NMB_OF_TEST;k++){
+				mykernel<<<1, mysize>>>(x_arr,mysize); 
+				gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+			}
 
 			times1[level] = getUnixTime() - timer;
 			std::cout << " - call naive: " << times1[level] << "s" << std::endl;
@@ -134,8 +139,10 @@ int main( int argc, char *argv[] )
 
 			timer = getUnixTime();
 			
-			mykernel<<<blockSize, gridSize>>>(x_arr, mysize);
-			gpuErrchk( cudaDeviceSynchronize() ); 
+			for(int k=0;k<NMB_OF_TEST;k++){
+				mykernel<<<blockSize, gridSize>>>(x_arr, mysize);
+				gpuErrchk( cudaDeviceSynchronize() ); 
+			}
 
 			times2[level] = getUnixTime() - timer;
 			std::cout << " - call optimal: " << times2[level] << "s" << std::endl;
@@ -185,8 +192,11 @@ int main( int argc, char *argv[] )
 
 		/* fill array */
 		timer = getUnixTime();
-		for(int i=0;i<mysize;i++){
-			x_arr[i] = i;
+
+		for(int k=0;k<NMB_OF_TEST;k++){
+			for(int i=0;i<mysize;i++){
+				x_arr[i] = i;
+			}
 		}
 
 		times3[level] = getUnixTime() - timer;
