@@ -3,10 +3,10 @@
 #include <time.h>
 
 /* the length of testing vector */
-#define T 100000000
+#define T 10000000
 
 /* the number of levels (number fo subproblems) */
-#define LEVELS 20
+#define LEVELS 5
 
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
@@ -54,7 +54,7 @@ __global__ void mykernel(double *x_arr, int mysize){
 __global__ void mykernel_block(double *x_arr, int mysize, int blocksize){
 	int block_i = blockIdx.x*blockDim.x + threadIdx.x; /* compute my id */
 
-	for(int i=block_i*blocksize;i<(block_i)*blocksize){
+	for(int i=block_i*blocksize;i<(block_i)*blocksize;i++){
 		if(i < mysize){
 			x_arr[i] = i;
 		}
@@ -146,13 +146,13 @@ int main( int argc, char *argv[] )
 		if(CALL_TEST){
 			timer = getUnixTime();
 
-			int thread_blocksize = 10;
+			int thread_blocksize = 1;
 			int nmb_block = ceil(mysize/(double)thread_blocksize);
 
 			gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel_block, 0, 0) );
 			gridSize = (nmb_block + blockSize - 1)/ blockSize;
 
-			mykernel_block<<<mysize,1>>>(x_arr,mysize,thread_blocksize); 
+			mykernel_block<<<blockSize,gridSize>>>(x_arr,mysize,thread_blocksize);
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 
 			times4[level] = getUnixTime() - timer;
