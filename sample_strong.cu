@@ -136,6 +136,11 @@ int main( int argc, char *argv[] )
 		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
 	}
 		
+	/* warm up */
+	mykernel<<<1,1>>>(x_arr,1,1);
+	gpuErrchk( cudaDeviceSynchronize() );
+	MPI_Barrier( MPI_COMM_WORLD ); 	
+		
 	/* fill array */
 	if(CALL_NAIVE){
 		/* the easiest call */
