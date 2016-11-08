@@ -138,7 +138,7 @@ int main( int argc, char *argv[] )
 		for(int k=0;k<nmb_of_tests;k++){
 			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, Tstart);
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
-			MPI_Barrier( MPI_COMM_WORLD ); /* synchornize MPI processes after computation */
+			MPI_Barrier( MPI_COMM_WORLD ); /* synchronize MPI processes after computation */
 		}
 
 		timer1 = getUnixTime() - timer;

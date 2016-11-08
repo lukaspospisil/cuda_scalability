@@ -70,7 +70,7 @@ int main( int argc, char *argv[] )
 	int nmb_of_tests;
 
 	if(argc != 3){
-		std::cout << "call with: ./sample_weak T nmb_of_tests" << std::endl;
+		std::cout << "call with: ./sample_strong T nmb_of_tests" << std::endl;
 		return 1;
 	} else {
 		T = atoi(argv[1]);
@@ -144,7 +144,7 @@ int main( int argc, char *argv[] )
 		for(int k=0;k<nmb_of_tests;k++){
 			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, Tstart);
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
-			MPI_Barrier( MPI_COMM_WORLD ); /* synchornize MPI processes after computation */
+			MPI_Barrier( MPI_COMM_WORLD ); /* synchronize MPI processes after computation */
 		}
 
 		timer1 = getUnixTime() - timer;
