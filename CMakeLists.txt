@@ -43,16 +43,16 @@ else ()
 endif()
 
 # compile the code of strong scalability
-if(${USE_CUDA})
+#if(${USE_CUDA})
 	# compile using cuda compiler
-	cuda_add_executable(sample_strong sample_strong.cu
-			OPTIONS "-arch=sm_35 --compiler-options \"${CUDA_CXX_FLAGS}\""
-			DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
-else ()
+#	cuda_add_executable(sample_strong sample_strong.cu
+#			OPTIONS "-arch=sm_35 --compiler-options \"${CUDA_CXX_FLAGS}\""
+#			DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+#else ()
 	# compile using standart c++ compiler
-	add_executable(sample_strong sample_strong.cpp)
-	target_link_libraries(sample_strong "-lrt;")
-endif()
+#	add_executable(sample_strong sample_strong.cpp)
+#	target_link_libraries(sample_strong "-lrt;")
+#endif()
 
 # compile the code of weak scalability
 if(${USE_CUDA})

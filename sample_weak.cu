@@ -41,7 +41,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 /* kernel called in this example */
-__global__ void mykernel(double *x_arr, int mysize, Tstart){
+__global__ void mykernel(double *x_arr, int mysize, int Tstart){
 	int i = blockIdx.x*blockDim.x + threadIdx.x; /* compute my id */
 
 	if(i<mysize){ /* maybe we call more than mysize kernels */
@@ -116,7 +116,7 @@ int main( int argc, char *argv[] )
 
 	/* allocate array */
 	timer = getUnixTime(); /* start to measure time */
-	gpuErrchk( cudaMalloc(&x_arr, sizeof(double)*mysize) );
+	gpuErrchk( cudaMalloc(&x_arr, sizeof(double)*Tlocal) );
 	
 	if(MPIrank == 0){ /* only master prints */
 		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
@@ -132,7 +132,7 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 		}
 
-		times1 = getUnixTime() - timer;
+		timer1 = getUnixTime() - timer;
 	}
 
 	if(CALL_OPTIMAL){
@@ -143,11 +143,11 @@ int main( int argc, char *argv[] )
 		timer = getUnixTime();
 			
 		for(int k=0;k<NMB_OF_TEST_GPU;k++){
-			mykernel<<<blockSize, gridSize>>>(x_arr, mysize, Tstart);
+			mykernel<<<blockSize, gridSize>>>(x_arr, Tlocal, Tstart);
 			gpuErrchk( cudaDeviceSynchronize() ); 
 		}
 
-		times2 = getUnixTime() - timer;
+		timer2 = getUnixTime() - timer;
 		for(int k=0;k<MPIsize;k++){
 			if(k==MPIrank){
 				/* my turn - I am printing */
@@ -166,7 +166,7 @@ int main( int argc, char *argv[] )
 				/* my turn - I am printing */
 				std::cout << k << ".CPU:" << std::endl;
 
-				printkernel<<<1,1>>>(x_arr,mysize);
+				printkernel<<<1,1>>>(x_arr,Tlocal);
 				gpuErrchk( cudaDeviceSynchronize() );
 			}
 			
