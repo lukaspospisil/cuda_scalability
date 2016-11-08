@@ -1,0 +1,16 @@
+Benchmark started
+ T            = 10000000
+ Tlocal       = 2500000
+ nmb_of_tests = 10
+ MPIsize      = 4
+ * MPIrank  = 0
+ * MPIrank  =  * MPIrank  =  * MPIrank  = 12
+
+3
+
+ - allocation: 2.43187e-05s
+ - destruction: 0.00179768s
+
+---- TIMERS ----
+ CPU seq    = 0.100595s
+

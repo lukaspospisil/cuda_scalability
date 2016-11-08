@@ -1,0 +1,19 @@
+Benchmark started
+ T            = 10000000
+ Tlocal       = 3333334
+ nmb_of_tests = 100000
+ MPIsize      = 3
+ * MPIrank  = 0
+ * MPIrank  = 1 * MPIrank  = 2
+
+
+ - allocation: 0.387342s
+0. ( gridSize = 3256, blockSize = 1024 )
+1. ( gridSize = 3256, blockSize = 1024 )
+2. ( gridSize = 3256, blockSize = 1024 )
+ - destruction: 0.000632286s
+
+---- TIMERS ----
+ GPU naive   = 0.392044s
+ GPU optimal = 0.412335s
+
