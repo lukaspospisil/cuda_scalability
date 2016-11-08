@@ -2,16 +2,11 @@
 #include <math.h>
 #include <time.h>
 #include <mpi.h>
-
-/* the local length of testing vector */
-#define Tlocal 10
+#include <stdio.h>
+#include <stdlib.h>
 
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 1
-
-/* number of performed tests */
-#define NMB_OF_TEST_CPU 10
-#define NMB_OF_TEST_GPU 1000000
 
 /* which CUDA calls to test? */
 #define CALL_NAIVE 1
@@ -26,7 +21,6 @@ double getUnixTime(void){
 
 #ifdef USE_CUDA
 /* CUDA stuff: */
-#include <stdio.h>
 #include "cuda.h"
 
 /* cuda error check */ 
@@ -71,6 +65,18 @@ __global__ void printkernel(double *x_arr, int mysize){
 
 int main( int argc, char *argv[] )
 {
+	/* load console arguments */
+	int Tlocal;
+	int nmb_of_tests;
+
+	if(argc != 3){
+		std::cout << "call with: ./sample_weak Tlocal nmb_of_tests" << std::endl;
+		return 1;
+	} else {
+		Tlocal = atoi(argv[1]);
+		nmb_of_tests = atoi(argv[2]);
+	}
+
 	/* MPI stuff */
     MPI_Init(NULL, NULL); /* Initialize the MPI environment */
 
@@ -88,8 +94,10 @@ int main( int argc, char *argv[] )
 	/* print problem info */
 	if(MPIrank == 0){ /* only master prints */
 		std::cout << "Benchmark started" << std::endl;
-		std::cout << " T          = " << T << std::endl;
-		std::cout << " MPIsize    = " << MPIsize << std::endl;
+		std::cout << " T            = " << T << std::endl;
+		std::cout << " Tlocal       = " << Tlocal << std::endl;
+		std::cout << " nmb_of_tests = " << nmb_of_tests << std::endl;
+		std::cout << " MPIsize      = " << MPIsize << std::endl;
 	}
 	MPI_Barrier( MPI_COMM_WORLD );
 	std::cout << " * MPIrank  = " << MPIrank << std::endl; /* everybody say hello */
@@ -127,7 +135,7 @@ int main( int argc, char *argv[] )
 		/* the easiest call */
 		timer = getUnixTime();
 
-		for(int k=0;k<NMB_OF_TEST_GPU;k++){
+		for(int k=0;k<nmb_of_tests;k++){
 			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, Tstart);
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
 		}
@@ -142,7 +150,7 @@ int main( int argc, char *argv[] )
 
 		timer = getUnixTime();
 			
-		for(int k=0;k<NMB_OF_TEST_GPU;k++){
+		for(int k=0;k<nmb_of_tests;k++){
 			mykernel<<<blockSize, gridSize>>>(x_arr, Tlocal, Tstart);
 			gpuErrchk( cudaDeviceSynchronize() ); 
 		}
@@ -206,7 +214,7 @@ int main( int argc, char *argv[] )
 
 	/* fill array */
 	timer = getUnixTime();
-	for(int k=0;k<NMB_OF_TEST_CPU;k++){
+	for(int k=0;k<nmb_of_tests;k++){
 		for(int i=0;i<Tlocal;i++){
 			x_arr[i] = Tstart+i;
 		}
