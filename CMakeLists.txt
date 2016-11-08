@@ -10,6 +10,9 @@ option(USE_CUDA "USE_CUDA" OFF)
 # CMAKE: include cmake functions
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/util/" ${CMAKE_MODULE_PATH})
 
+# add MPI stuff
+set(CMAKE_CXX_COMPILER "mpicxx")
+
 # give some info about Petsc
 message(STATUS "CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
 message(STATUS "USE_CUDA = ${USE_CUDA}")

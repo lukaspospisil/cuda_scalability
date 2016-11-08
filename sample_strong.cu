@@ -1,12 +1,10 @@
 #include <iostream>
 #include <math.h>
 #include <time.h>
+#include <mpi.h>
 
 /* the length of testing vector */
 #define T 100000
-
-/* the number of levels (number fo subproblems) */
-#define LEVELS 50 
 
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
@@ -18,7 +16,6 @@
 /* which CUDA calls to test? */
 #define CALL_NAIVE 1
 #define CALL_OPTIMAL 1
-#define CALL_TEST 0
 
 /* for measuring time */
 double getUnixTime(void){
@@ -54,19 +51,6 @@ __global__ void mykernel(double *x_arr, int mysize){
 	/* i >= mysize then relax and do nothing */	
 }
 
-/* kernel called in this example */
-__global__ void mykernel_block(double *x_arr, int mysize, int blocksize){
-	int block_i = blockIdx.x*blockDim.x + threadIdx.x; /* compute my id */
-
-	for(int i=block_i*blocksize;i<(block_i)*blocksize;i++){
-		if(i < mysize){
-			x_arr[i] = i;
-		}
-	}
-
-	/* i >= mysize then relax and do nothing */	
-}
-
 /* print kernel, call only one (!)  */
 /* in practical applications, this way is a real bottleneck, array should be transfered to CPU and printed there */
 /* anyway, in this sample I want to print only small arrays, so who cares.. */
@@ -87,187 +71,191 @@ __global__ void printkernel(double *x_arr, int mysize){
 
 int main( int argc, char *argv[] )
 {
+	/* MPI stuff */
+    MPI_Init(NULL, NULL); /* Initialize the MPI environment */
+
+	int MPIrank, MPIsize;
+	MPI_Comm_rank(MPI_COMM_WORLD, &MPIrank);
+	MPI_Comm_size(MPI_COMM_WORLD, &MPIsize);	
+	
 #ifdef USE_CUDA
+	/* CUDA stuff */
 	gpuErrchk( cudaDeviceReset() );
 #endif
 
 	/* print problem info */
-	std::cout << "Benchmark started" << std::endl;
-	std::cout << " T          = " << T << std::endl;
-	std::cout << " LEVELS     = " << LEVELS << std::endl;
-	std::cout << std::endl;
-
+	if(MPIrank == 0){ /* only master prints */
+		std::cout << "Benchmark started" << std::endl;
+		std::cout << " T          = " << T << std::endl;
+		std::cout << " MPIsize    = " << MPIsize << std::endl;
+	}
+	MPI_Barrier( MPI_COMM_WORLD );
+	std::cout << " * MPIrank  = " << MPIrank << std::endl; /* everybody say hello */
+	MPI_Barrier( MPI_COMM_WORLD );
+	if(MPIrank == 0){ /* only master prints */
+		std::cout << std::endl;
+	}
+	
 	double timer;
-	double times1[LEVELS];
-	double times2[LEVELS];
-	double times3[LEVELS];
-	double times4[LEVELS];
+	double timer1;
+	double timer2;
+	double timer3;
 	
 	double *x_arr; /* my array on GPU */
-	int mysize; /* the lenght of alocated vector (array) */
+	int Tlocal; /* local length of vector */
+	int Tstart; /* lower range of local part */
 
-	for(int level=0; level < LEVELS; level++){
-		/* compute the size of testing array on this level */
-		mysize = ceil(T/(double)(level+1));
-		std::cout << "(" << level+1 << ".): problem of size = " << mysize << std::endl;
+	/* compute local length of array */
+	int Tlocal_opt = floor(T/(double)MPIsize);
+
+	Tlocal = 10;
+	Tstart = 
 
 #ifdef USE_CUDA
 /* ------- CUDA version ------- */
-		int minGridSize, blockSize, gridSize;
+	int minGridSize, blockSize, gridSize; /* for optimal call */
 
-		/* allocate array */
-		timer = getUnixTime(); /* start to measure time */
-		gpuErrchk( cudaMalloc(&x_arr, sizeof(double)*mysize) );
-		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
+	/* allocate array */
+	timer = getUnixTime(); /* start to measure time */
+	gpuErrchk( cudaMalloc(&x_arr, sizeof(double)*mysize) );
+	
+	
+	std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
 		
-		/* fill array */
-		if(CALL_NAIVE){
-			/* the easiest call */
-			timer = getUnixTime();
-
-			for(int k=0;k<NMB_OF_TEST_GPU;k++){
-				mykernel<<<1, mysize>>>(x_arr,mysize); 
-				gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
-			}
-
-			times1[level] = getUnixTime() - timer;
-			std::cout << " - call naive: " << times1[level] << "s" << std::endl;
-		}
-
-		if(CALL_OPTIMAL){
-			gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel, 0, 0) );
-			gridSize = (mysize + blockSize - 1)/ blockSize;
-
-			timer = getUnixTime();
-			
-			for(int k=0;k<NMB_OF_TEST_GPU;k++){
-				mykernel<<<blockSize, gridSize>>>(x_arr, mysize);
-				gpuErrchk( cudaDeviceSynchronize() ); 
-			}
-
-			times2[level] = getUnixTime() - timer;
-			std::cout << " - call optimal: " << times2[level] << "s" << std::endl;
-			std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
-
-		}
-
-		if(CALL_TEST){
-			timer = getUnixTime();
-
-//			int thread_blocksize = 1;
-//			int nmb_block = ceil(mysize/(double)thread_blocksize);
-
-//			gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel_block, 0, 0) );
-//			gridSize = (nmb_block + blockSize - 1)/ blockSize;
-			
-			for(int k=0;k<NMB_OF_TEST_GPU;k++){
-				mykernel<<<gridSize,blockSize>>>(x_arr,mysize);
-				gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
-			}
-
-			times4[level] = getUnixTime() - timer;
-			std::cout << " - call test: " << times4[level] << "s" << std::endl;
-
-		}
-
-		/* print array */
-		if(PRINT_VECTOR_CONTENT){
-			timer = getUnixTime();
-
-			printkernel<<<1,1>>>(x_arr,mysize);
-			gpuErrchk( cudaDeviceSynchronize() );
-
-			std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
-		}
-
-		/* destroy array */
+	/* fill array */
+	if(CALL_NAIVE){
+		/* the easiest call */
 		timer = getUnixTime();
-		gpuErrchk( cudaFree(x_arr) );
-		std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
+
+		for(int k=0;k<NMB_OF_TEST_GPU;k++){
+			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, MPIrank);
+			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+		}
+
+		times1 = getUnixTime() - timer;
+		std::cout << " - call naive: " << times1 << "s" << std::endl;
+	}
+
+	if(CALL_OPTIMAL){
+		/* compute optimal parameters of the call */
+		gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel, 0, 0) );
+		gridSize = (Tlocal + blockSize - 1)/ blockSize;
+
+		timer = getUnixTime();
+			
+		for(int k=0;k<NMB_OF_TEST_GPU;k++){
+			mykernel<<<blockSize, gridSize>>>(x_arr, mysize, MPIrank);
+			gpuErrchk( cudaDeviceSynchronize() ); 
+		}
+
+		times2 = getUnixTime() - timer;
+		std::cout << " - call optimal: " << times2 << "s" << std::endl;
+		std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
+
+	}
+
+	/* print array */
+	if(PRINT_VECTOR_CONTENT){
+		timer = getUnixTime();
+
+		for(int k=0;k<MPIsize;k++){
+			if(k==MPIrank){
+				/* my turn - I am printing */
+				std::cout << k << ".CPU:" << std::endl;
+
+				printkernel<<<1,1>>>(x_arr,mysize);
+				gpuErrchk( cudaDeviceSynchronize() );
+			}
+			
+			MPI_Barrier( MPI_COMM_WORLD );
+		}
+
+		std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
+	}
+
+	/* destroy array */
+	timer = getUnixTime();
+	gpuErrchk( cudaFree(x_arr) );
+	std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
 
 #else
 /* ------- SEQUENTIAL version ------- */
 
-		/* allocate array */
-		timer = getUnixTime();
-		x_arr = new double[mysize];
+	/* allocate array */
+	timer = getUnixTime();
+	x_arr = new double[Tlocal];
+	MPI_Barrier( MPI_COMM_WORLD );
+
+	if(MPIrank == 0){ /* only master prints */
 		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
-
-		/* fill array */
-		timer = getUnixTime();
-
-		for(int k=0;k<NMB_OF_TEST_CPU;k++){
-			for(int i=0;i<mysize;i++){
-				x_arr[i] = i;
-			}
-		}
-
-		times3[level] = getUnixTime() - timer;
-		std::cout << " - call sequential: " << times3[level] << "s" << std::endl;
-		
-		/* print array */
-		if(PRINT_VECTOR_CONTENT){
-			timer = getUnixTime();
-
-			std::cout << "  [";
-			for(int i=0;i<mysize;i++){
-				std::cout << " " << x_arr[i];
-				if(i < mysize-1) std::cout << ",";
-			}
-			std::cout << " ]" << std::endl;
-
-			std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
-		}
-		
-		/* destroy array */
-		timer = getUnixTime();
-		delete [] x_arr;
-		std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
-#endif
-
 	}
+	MPI_Barrier( MPI_COMM_WORLD );
+
+	/* fill array */
+	timer = getUnixTime();
+	for(int k=0;k<NMB_OF_TEST_CPU;k++){
+		for(int i=0;i<Tlocal;i++){
+			x_arr[i] = i;
+		}
+	}
+	timer3 = getUnixTime() - timer;
+		
+	/* print array */
+	if(PRINT_VECTOR_CONTENT){
+		timer = getUnixTime();
+
+		for(int k=0;k<MPIsize;k++){
+			if(k==MPIrank){
+				/* my turn - I am printing */
+				std::cout << k << ".CPU:" << std::endl;
+
+				std::cout << "  [";
+				for(int i=0;i<Tlocal;i++){
+					std::cout << " " << x_arr[i];
+					if(i < Tlocal-1) std::cout << ",";
+				}
+				std::cout << " ]" << std::endl;
+			}
+			
+			MPI_Barrier( MPI_COMM_WORLD );
+		}
+
+		std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
+	}
+		
+	/* destroy array */
+	timer = getUnixTime();
+	delete [] x_arr;
+	MPI_Barrier( MPI_COMM_WORLD );
+
+	if(MPIrank == 0){ /* only master prints */
+		std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
+	}
+	
+#endif
 
 
 	/* final print of timers */
-	std::cout << std::endl;
-	std::cout << "---- TIMERS ----" << std::endl;
+	if(MPIrank==0){ /* only master prints */
+		std::cout << std::endl;
+		std::cout << "---- TIMERS ----" << std::endl;
 #ifdef USE_CUDA
-	if(CALL_NAIVE){
-		std::cout << " GPU naive   = [";
-		for(int i=0;i<LEVELS;i++){
-			std::cout << " " << times1[i];
-			if(i < LEVELS-1) std::cout << ",";
+		if(CALL_NAIVE){
+			std::cout << " GPU naive   = " << timer1 << "s" << std::endl;
 		}
-		std::cout << " ]" << std::endl;
-	}
 
-	if(CALL_OPTIMAL){
-		std::cout << " GPU optimal = [";
-		for(int i=0;i<LEVELS;i++){
-			std::cout << " " << times2[i];
-			if(i < LEVELS-1) std::cout << ",";
+		if(CALL_OPTIMAL){
+			std::cout << " GPU optimal = " << timer2 << "s" << std::endl;
 		}
-		std::cout << " ]" << std::endl;
-	}
-
-	if(CALL_TEST){
-		std::cout << " GPU test    = [";
-		for(int i=0;i<LEVELS;i++){
-			std::cout << " " << times4[i];
-			if(i < LEVELS-1) std::cout << ",";
-		}
-		std::cout << " ]" << std::endl;
-	}
 
 #else
-	std::cout << " CPU seq    = [";
-	for(int i=0;i<LEVELS;i++){
-		std::cout << " " << times3[i];
-		if(i < LEVELS-1) std::cout << ",";
-	}
-	std::cout << " ]" << std::endl;
+		std::cout << " CPU seq    = " << timer3 << "s" << std::endl;
 #endif
-	std::cout << std::endl;
+		std::cout << std::endl;
+	}
+	
+	/* MPI stuff */
+	MPI_Finalize();	/* Finalize the MPI environment. */
 
 	return 0;
 }
