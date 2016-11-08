@@ -2,16 +2,11 @@
 #include <math.h>
 #include <time.h>
 #include <mpi.h>
-
-/* the length of testing vector */
-#define T 100000
+#include <stdio.h>
+#include <stdlib.h>
 
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
-
-/* number of performed tests */
-#define NMB_OF_TEST_CPU 10
-#define NMB_OF_TEST_GPU 1000000
 
 /* which CUDA calls to test? */
 #define CALL_NAIVE 1
@@ -26,7 +21,6 @@ double getUnixTime(void){
 
 #ifdef USE_CUDA
 /* CUDA stuff: */
-#include <stdio.h>
 #include "cuda.h"
 
 /* cuda error check */ 
@@ -41,11 +35,11 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 /* kernel called in this example */
-__global__ void mykernel(double *x_arr, int mysize){
+__global__ void mykernel(double *x_arr, int mysize, int Tstart){
 	int i = blockIdx.x*blockDim.x + threadIdx.x; /* compute my id */
 
 	if(i<mysize){ /* maybe we call more than mysize kernels */
-		x_arr[i] = i;
+		x_arr[i] = Tstart+i;
 	}
 
 	/* i >= mysize then relax and do nothing */	
@@ -71,12 +65,36 @@ __global__ void printkernel(double *x_arr, int mysize){
 
 int main( int argc, char *argv[] )
 {
+	/* load console arguments */
+	int T;
+	int nmb_of_tests;
+
+	if(argc != 3){
+		std::cout << "call with: ./sample_weak T nmb_of_tests" << std::endl;
+		return 1;
+	} else {
+		T = atoi(argv[1]);
+		nmb_of_tests = atoi(argv[2]);
+	}
+
 	/* MPI stuff */
     MPI_Init(NULL, NULL); /* Initialize the MPI environment */
 
 	int MPIrank, MPIsize;
 	MPI_Comm_rank(MPI_COMM_WORLD, &MPIrank);
 	MPI_Comm_size(MPI_COMM_WORLD, &MPIsize);	
+	
+	/* compute Tlocal */
+	int Tlocal_optimal = floor(T/(double)MPIsize);
+	int Tlocal_optimal_rest = T - Tlocal_optimal*MPIsize;
+	int Tlocal = Tlocal_optimal;
+	int Tstart = Tlocal_optimal*MPIrank;
+	if(MPIrank < Tlocal_optimal_rest){
+		Tlocal++;
+		Tstart+=MPIrank;
+	} else {
+		Tstart+=Tlocal_optimal_rest;
+	}
 	
 #ifdef USE_CUDA
 	/* CUDA stuff */
@@ -86,8 +104,10 @@ int main( int argc, char *argv[] )
 	/* print problem info */
 	if(MPIrank == 0){ /* only master prints */
 		std::cout << "Benchmark started" << std::endl;
-		std::cout << " T          = " << T << std::endl;
-		std::cout << " MPIsize    = " << MPIsize << std::endl;
+		std::cout << " T            = " << T << std::endl;
+		std::cout << " Tlocal       = " << Tlocal << std::endl;
+		std::cout << " nmb_of_tests = " << nmb_of_tests << std::endl;
+		std::cout << " MPIsize      = " << MPIsize << std::endl;
 	}
 	MPI_Barrier( MPI_COMM_WORLD );
 	std::cout << " * MPIrank  = " << MPIrank << std::endl; /* everybody say hello */
@@ -95,6 +115,7 @@ int main( int argc, char *argv[] )
 	if(MPIrank == 0){ /* only master prints */
 		std::cout << std::endl;
 	}
+	MPI_Barrier( MPI_COMM_WORLD );
 	
 	double timer;
 	double timer1;
@@ -102,14 +123,6 @@ int main( int argc, char *argv[] )
 	double timer3;
 	
 	double *x_arr; /* my array on GPU */
-	int Tlocal; /* local length of vector */
-	int Tstart; /* lower range of local part */
-
-	/* compute local length of array */
-	int Tlocal_opt = floor(T/(double)MPIsize);
-
-	Tlocal = 10;
-	Tstart = 
 
 #ifdef USE_CUDA
 /* ------- CUDA version ------- */
@@ -117,23 +130,24 @@ int main( int argc, char *argv[] )
 
 	/* allocate array */
 	timer = getUnixTime(); /* start to measure time */
-	gpuErrchk( cudaMalloc(&x_arr, sizeof(double)*mysize) );
+	gpuErrchk( cudaMalloc(&x_arr, sizeof(double)*Tlocal) );
 	
-	
-	std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
+	if(MPIrank == 0){ /* only master prints */
+		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
+	}
 		
 	/* fill array */
 	if(CALL_NAIVE){
 		/* the easiest call */
 		timer = getUnixTime();
 
-		for(int k=0;k<NMB_OF_TEST_GPU;k++){
-			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, MPIrank);
+		for(int k=0;k<nmb_of_tests;k++){
+			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, Tstart);
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+			MPI_Barrier( MPI_COMM_WORLD ); /* synchornize MPI processes after computation */
 		}
 
-		times1 = getUnixTime() - timer;
-		std::cout << " - call naive: " << times1 << "s" << std::endl;
+		timer1 = getUnixTime() - timer;
 	}
 
 	if(CALL_OPTIMAL){
@@ -143,15 +157,20 @@ int main( int argc, char *argv[] )
 
 		timer = getUnixTime();
 			
-		for(int k=0;k<NMB_OF_TEST_GPU;k++){
-			mykernel<<<blockSize, gridSize>>>(x_arr, mysize, MPIrank);
-			gpuErrchk( cudaDeviceSynchronize() ); 
+		for(int k=0;k<nmb_of_tests;k++){
+			mykernel<<<blockSize, gridSize>>>(x_arr, Tlocal, Tstart);
+			gpuErrchk( cudaDeviceSynchronize() );
+			MPI_Barrier( MPI_COMM_WORLD ); 
 		}
 
-		times2 = getUnixTime() - timer;
-		std::cout << " - call optimal: " << times2 << "s" << std::endl;
-		std::cout << "   ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
-
+		timer2 = getUnixTime() - timer;
+		for(int k=0;k<MPIsize;k++){
+			if(k==MPIrank){
+				/* my turn - I am printing */
+				std::cout << MPIrank << ". ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
+			}
+			MPI_Barrier( MPI_COMM_WORLD );
+		}
 	}
 
 	/* print array */
@@ -163,20 +182,30 @@ int main( int argc, char *argv[] )
 				/* my turn - I am printing */
 				std::cout << k << ".CPU:" << std::endl;
 
-				printkernel<<<1,1>>>(x_arr,mysize);
+				printkernel<<<1,1>>>(x_arr,Tlocal);
 				gpuErrchk( cudaDeviceSynchronize() );
 			}
 			
 			MPI_Barrier( MPI_COMM_WORLD );
 		}
 
-		std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
+
+		if(MPIrank == 0){ /* only master prints */
+			std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
+		}
+		MPI_Barrier( MPI_COMM_WORLD );
+
 	}
 
 	/* destroy array */
 	timer = getUnixTime();
 	gpuErrchk( cudaFree(x_arr) );
-	std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
+	MPI_Barrier( MPI_COMM_WORLD );
+
+	if(MPIrank == 0){ /* only master prints */
+		std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
+	}
+	MPI_Barrier( MPI_COMM_WORLD );
 
 #else
 /* ------- SEQUENTIAL version ------- */
@@ -193,12 +222,14 @@ int main( int argc, char *argv[] )
 
 	/* fill array */
 	timer = getUnixTime();
-	for(int k=0;k<NMB_OF_TEST_CPU;k++){
+	for(int k=0;k<nmb_of_tests;k++){
 		for(int i=0;i<Tlocal;i++){
-			x_arr[i] = i;
+			x_arr[i] = Tstart+i;
 		}
+		MPI_Barrier( MPI_COMM_WORLD );
 	}
 	timer3 = getUnixTime() - timer;
+	MPI_Barrier( MPI_COMM_WORLD );
 		
 	/* print array */
 	if(PRINT_VECTOR_CONTENT){
@@ -220,8 +251,12 @@ int main( int argc, char *argv[] )
 			MPI_Barrier( MPI_COMM_WORLD );
 		}
 
-		std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
+		if(MPIrank == 0){ /* only master prints */
+			std::cout << " - printed in: " << getUnixTime() - timer << "s" << std::endl;
+		}
+		MPI_Barrier( MPI_COMM_WORLD );
 	}
+	MPI_Barrier( MPI_COMM_WORLD );
 		
 	/* destroy array */
 	timer = getUnixTime();
@@ -231,6 +266,7 @@ int main( int argc, char *argv[] )
 	if(MPIrank == 0){ /* only master prints */
 		std::cout << " - destruction: " << getUnixTime() - timer << "s" << std::endl;
 	}
+	MPI_Barrier( MPI_COMM_WORLD );
 	
 #endif
 
@@ -253,6 +289,7 @@ int main( int argc, char *argv[] )
 #endif
 		std::cout << std::endl;
 	}
+	MPI_Barrier( MPI_COMM_WORLD );
 	
 	/* MPI stuff */
 	MPI_Finalize();	/* Finalize the MPI environment. */
