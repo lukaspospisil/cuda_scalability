@@ -2,14 +2,14 @@
 
 #PBS -A IT4I-7-5
 #PBS -q qexp
-#PBS -N weak_4GPU
-#PBS -l select=4:ncpus=1:mpiprocs=1:host=cn200+1+1+1,walltime=00:10:00
+#PBS -N strong_3GPU
+#PBS -l select=3:ncpus=1:mpiprocs=1:host=cn200+1+1,walltime=00:10:00
 #PBS -j oe
 
 cd ~/cuda_scalability/build_gpu
 source ~/cuda_scalability/util/module_load_anselm
 
-export TLOCAL=10000000
+export T=10000000
 export NMB_OF_TESTS=100000
 
-mpiexec -n 4 ./sample_weak $TLOCAL $NMB_OF_TESTS
+mpiexec -n 3 ./sample_strong $T $NMB_OF_TESTS

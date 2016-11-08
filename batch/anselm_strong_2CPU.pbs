@@ -1,0 +1,15 @@
+#!/bin/bash --login
+
+#PBS -A IT4I-7-5
+#PBS -q qexp
+#PBS -N strong_2CPU
+#PBS -l select=2:ncpus=1:mpiprocs=1,walltime=00:10:00
+#PBS -j oe
+
+cd ~/cuda_scalability/build_cpu
+source ~/cuda_scalability/util/module_load_anselm
+
+export T=10000000
+export NMB_OF_TESTS=10
+
+mpiexec -n 2 ./sample_strong $T $NMB_OF_TESTS
