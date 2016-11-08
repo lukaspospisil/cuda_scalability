@@ -6,7 +6,7 @@
 #include <stdlib.h>
 
 /* if the lenght of vector is large, set this to zero */
-#define PRINT_VECTOR_CONTENT 1
+#define PRINT_VECTOR_CONTENT 0
 
 /* which CUDA calls to test? */
 #define CALL_NAIVE 1

@@ -2,6 +2,7 @@
 #include <math.h>
 #include <time.h>
 
+
 /* the length of testing vector */
 #define T 100000
 

@@ -10,6 +10,6 @@ cd ~/cuda_scalability/build
 source ~/cuda_scalability/util/module_load_anselm
 
 export TLOCAL=10000000
-export NMB_OF_TESTS=100000
+export NMB_OF_TESTS=10000
 
 mpiexec -n 1 ./sample_weak $TLOCAL $NMB_OF_TESTS

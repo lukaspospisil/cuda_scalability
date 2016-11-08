@@ -36,6 +36,7 @@ if(${USE_CUDA})
 	cuda_add_executable(sample_one sample_one.cu
 			OPTIONS "-arch=sm_35 --compiler-options \"${CUDA_CXX_FLAGS}\""
 			DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+	target_link_libraries(sample_one "-lrt;" ${CUDA_LIBRARIES})
 else ()
 	# compile using standart c++ compiler
 	add_executable(sample_one sample_one.cpp)
