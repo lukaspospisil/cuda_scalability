@@ -11,7 +11,7 @@ option(USE_CUDA "USE_CUDA" OFF)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/util/" ${CMAKE_MODULE_PATH})
 
 # add MPI stuff
-set(CMAKE_CXX_COMPILER "mpicxx")
+set(CMAKE_CXX_COMPILER "mpic++")
 
 # give some info about Petsc
 message(STATUS "CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
@@ -61,6 +61,7 @@ if(${USE_CUDA})
 	cuda_add_executable(sample_weak sample_weak.cu
 			OPTIONS "-arch=sm_35 --compiler-options \"${CUDA_CXX_FLAGS}\""
 			DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+	target_link_libraries(sample_weak "-lrt;" ${CUDA_LIBRARIES})
 else ()
 	# compile using standart c++ compiler
 	add_executable(sample_weak sample_weak.cpp)

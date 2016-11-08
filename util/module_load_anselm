@@ -3,4 +3,6 @@
 #
 
 module load cmake
+module load PrgEnv-gnu
+module load MPICH
 module load cuda

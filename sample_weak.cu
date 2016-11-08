@@ -138,6 +138,7 @@ int main( int argc, char *argv[] )
 		for(int k=0;k<nmb_of_tests;k++){
 			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, Tstart);
 			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
+			MPI_Barrier( MPI_COMM_WORLD ); /* synchornize MPI processes after computation */
 		}
 
 		timer1 = getUnixTime() - timer;
@@ -152,7 +153,8 @@ int main( int argc, char *argv[] )
 			
 		for(int k=0;k<nmb_of_tests;k++){
 			mykernel<<<blockSize, gridSize>>>(x_arr, Tlocal, Tstart);
-			gpuErrchk( cudaDeviceSynchronize() ); 
+			gpuErrchk( cudaDeviceSynchronize() );
+			MPI_Barrier( MPI_COMM_WORLD ); 
 		}
 
 		timer2 = getUnixTime() - timer;
@@ -218,6 +220,7 @@ int main( int argc, char *argv[] )
 		for(int i=0;i<Tlocal;i++){
 			x_arr[i] = Tstart+i;
 		}
+		MPI_Barrier( MPI_COMM_WORLD );
 	}
 	timer3 = getUnixTime() - timer;
 	MPI_Barrier( MPI_COMM_WORLD );
