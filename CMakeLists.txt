@@ -27,14 +27,39 @@ if(${USE_CUDA})
 	set(CUDA_CXX_FLAGS "${CUDA_CXX_FLAGS} -DUSE_CUDA")
 endif()
 
-# compile the code
+# compile the code of one node, decreasing size
 if(${USE_CUDA})
 	# compile using cuda compiler
-	cuda_add_executable(sample sample.cu
+	cuda_add_executable(sample_one sample_one.cu
 			OPTIONS "-arch=sm_35 --compiler-options \"${CUDA_CXX_FLAGS}\""
 			DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
 else ()
 	# compile using standart c++ compiler
-	add_executable(sample sample.cpp)
-	target_link_libraries(sample "-lrt;")
+	add_executable(sample_one sample_one.cpp)
+	target_link_libraries(sample_one "-lrt;")
 endif()
+
+# compile the code of strong scalability
+if(${USE_CUDA})
+	# compile using cuda compiler
+	cuda_add_executable(sample_strong sample_strong.cu
+			OPTIONS "-arch=sm_35 --compiler-options \"${CUDA_CXX_FLAGS}\""
+			DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+else ()
+	# compile using standart c++ compiler
+	add_executable(sample_strong sample_strong.cpp)
+	target_link_libraries(sample_strong "-lrt;")
+endif()
+
+# compile the code of weak scalability
+if(${USE_CUDA})
+	# compile using cuda compiler
+	cuda_add_executable(sample_weak sample_weak.cu
+			OPTIONS "-arch=sm_35 --compiler-options \"${CUDA_CXX_FLAGS}\""
+			DEBUG ${CMAKE_CXX_FLAGS_DEBUG})
+else ()
+	# compile using standart c++ compiler
+	add_executable(sample_weak sample_weak.cpp)
+	target_link_libraries(sample_weak "-lrt;")
+endif()
+

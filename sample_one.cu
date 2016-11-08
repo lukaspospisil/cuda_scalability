@@ -3,7 +3,7 @@
 #include <time.h>
 
 /* the length of testing vector */
-#define T 100000000
+#define T 100000
 
 /* the number of levels (number fo subproblems) */
 #define LEVELS 50 
