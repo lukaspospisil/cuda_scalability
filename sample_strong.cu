@@ -57,6 +57,15 @@ __global__ void printkernel(double *x_arr, int mysize){
 	printf(" ]\n");
 }
 
+__global__ void printkernel_id(double *x_arr, int mysize, int id){
+	printf("from cuda x_arr[%d]: ", id);
+	if(id < mysize){
+		printf("%f", x_arr[id]);
+	} else {
+		printf("out of range");
+	}
+	printf("\n");
+}
 
 /* end of CUDA stuff */
 #endif
@@ -152,6 +161,7 @@ int main( int argc, char *argv[] )
 			MPI_Barrier( MPI_COMM_WORLD ); /* synchronize MPI processes after computation */
 		}
 
+
 		timer1 = getUnixTime() - timer;
 	}
 
@@ -167,6 +177,25 @@ int main( int argc, char *argv[] )
 			gpuErrchk( cudaDeviceSynchronize() );
 			MPI_Barrier( MPI_COMM_WORLD ); 
 		}
+
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 1);
+		gpuErrchk( cudaDeviceSynchronize() );
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 10);
+		gpuErrchk( cudaDeviceSynchronize() );
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 100);
+		gpuErrchk( cudaDeviceSynchronize() );
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 1000);
+		gpuErrchk( cudaDeviceSynchronize() );
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 10000);
+		gpuErrchk( cudaDeviceSynchronize() );
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 100000);
+		gpuErrchk( cudaDeviceSynchronize() );
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 1000000);
+		gpuErrchk( cudaDeviceSynchronize() );
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 10000000);
+		gpuErrchk( cudaDeviceSynchronize() );
+		printkernel_id<<<1,1>>>(x_arr, Tlocal, 100000000);
+		gpuErrchk( cudaDeviceSynchronize() );
 
 		timer2 = getUnixTime() - timer;
 		for(int k=0;k<MPIsize;k++){

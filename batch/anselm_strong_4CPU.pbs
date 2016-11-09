@@ -9,7 +9,7 @@
 cd ~/cuda_scalability/build_cpu
 source ~/cuda_scalability/util/module_load_anselm
 
-export T=10000000
+export T=100000000
 export NMB_OF_TESTS=10
 
 mpiexec -n 4 ./sample_strong $T $NMB_OF_TESTS
