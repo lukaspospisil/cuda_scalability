@@ -8,10 +8,6 @@
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
 
-/* which CUDA calls to test? */
-#define CALL_NAIVE 1
-#define CALL_OPTIMAL 1
-
 /* for measuring time */
 double getUnixTime(void){
 	struct timespec tv;
@@ -129,7 +125,6 @@ int main( int argc, char *argv[] )
 	double timer;
 	double timer1;
 	double timer2;
-	double timer3;
 	
 	double *x_arr; /* my array on GPU */
 
@@ -150,61 +145,45 @@ int main( int argc, char *argv[] )
 	gpuErrchk( cudaDeviceSynchronize() );
 	MPI_Barrier( MPI_COMM_WORLD ); 	
 		
-	/* fill array */
-	if(CALL_NAIVE){
-		/* the easiest call */
-		timer = getUnixTime();
+	/* compute optimal parameters of the call */
+	gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel, 0, 0) );
+	gridSize = (Tlocal + blockSize - 1)/ blockSize;
 
-		for(int k=0;k<nmb_of_tests;k++){
-			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, Tstart);
-			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
-			MPI_Barrier( MPI_COMM_WORLD ); /* synchronize MPI processes after computation */
-		}
-
-
-		timer1 = getUnixTime() - timer;
+	timer = getUnixTime();
+			
+	for(int k=0;k<nmb_of_tests;k++){
+		mykernel<<<blockSize, gridSize>>>(x_arr, Tlocal, Tstart);
+		gpuErrchk( cudaDeviceSynchronize() );
+		MPI_Barrier( MPI_COMM_WORLD ); 
 	}
 
-	if(CALL_OPTIMAL){
-		/* compute optimal parameters of the call */
-		gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel, 0, 0) );
-		gridSize = (Tlocal + blockSize - 1)/ blockSize;
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 1);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 10);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 100);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 1000);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 10000);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 100000);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 1000000);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 10000000);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 100000000);
+	gpuErrchk( cudaDeviceSynchronize() );
 
-		timer = getUnixTime();
-			
-		for(int k=0;k<nmb_of_tests;k++){
-			mykernel<<<blockSize, gridSize>>>(x_arr, Tlocal, Tstart);
-			gpuErrchk( cudaDeviceSynchronize() );
-			MPI_Barrier( MPI_COMM_WORLD ); 
+	timer1 = getUnixTime() - timer;
+	for(int k=0;k<MPIsize;k++){
+		if(k==MPIrank){
+			/* my turn - I am printing */
+			std::cout << MPIrank << ". ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
 		}
-
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 1);
-		gpuErrchk( cudaDeviceSynchronize() );
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 10);
-		gpuErrchk( cudaDeviceSynchronize() );
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 100);
-		gpuErrchk( cudaDeviceSynchronize() );
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 1000);
-		gpuErrchk( cudaDeviceSynchronize() );
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 10000);
-		gpuErrchk( cudaDeviceSynchronize() );
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 100000);
-		gpuErrchk( cudaDeviceSynchronize() );
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 1000000);
-		gpuErrchk( cudaDeviceSynchronize() );
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 10000000);
-		gpuErrchk( cudaDeviceSynchronize() );
-		printkernel_id<<<1,1>>>(x_arr, Tlocal, 100000000);
-		gpuErrchk( cudaDeviceSynchronize() );
-
-		timer2 = getUnixTime() - timer;
-		for(int k=0;k<MPIsize;k++){
-			if(k==MPIrank){
-				/* my turn - I am printing */
-				std::cout << MPIrank << ". ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
-			}
-			MPI_Barrier( MPI_COMM_WORLD );
-		}
+		MPI_Barrier( MPI_COMM_WORLD );
+	}
 	}
 
 	/* print array */
@@ -262,7 +241,7 @@ int main( int argc, char *argv[] )
 		}
 		MPI_Barrier( MPI_COMM_WORLD );
 	}
-	timer3 = getUnixTime() - timer;
+	timer2 = getUnixTime() - timer;
 	MPI_Barrier( MPI_COMM_WORLD );
 		
 	/* print array */
@@ -310,16 +289,9 @@ int main( int argc, char *argv[] )
 		std::cout << std::endl;
 		std::cout << "---- TIMERS ----" << std::endl;
 #ifdef USE_CUDA
-		if(CALL_NAIVE){
-			std::cout << " GPU naive   = " << timer1 << "s" << std::endl;
-		}
-
-		if(CALL_OPTIMAL){
-			std::cout << " GPU optimal = " << timer2 << "s" << std::endl;
-		}
-
+		std::cout << " GPU = " << timer1 << "s" << std::endl;
 #else
-		std::cout << " CPU seq    = " << timer3 << "s" << std::endl;
+		std::cout << " CPU = " << timer2 << "s" << std::endl;
 #endif
 		std::cout << std::endl;
 	}
