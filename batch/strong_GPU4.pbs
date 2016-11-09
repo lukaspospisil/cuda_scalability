@@ -1,0 +1,11 @@
+#!/bin/bash --login
+#PBS -A IT4I-7-5
+#PBS -q qexp
+#PBS -N strong_GPU4
+#PBS -l select=1:ncpus=1:mpiprocs=1:host=cn200+1:ncpus=1:mpiprocs=1:host=cn201+1:ncpus=1:mpiprocs=1:host=cn202+1:ncpus=1:mpiprocs=1:host=cn203,walltime=00:20:00
+#PBS -j oe
+
+cd /home_lustre/pos220/cuda_scalability/build_gpu/
+source /home_lustre/pos220/cuda_scalability/util/module_load_anselm
+
+mpiexec -n 4 ./sample_strong 100000000 1000
