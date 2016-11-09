@@ -14,7 +14,7 @@ main_folder = "/home_lustre/pos220/cuda_scalability";
 batch_path = "%s/batch/" %(main_folder);
 exec_name = "./sample_weak"
 source_path = "%s/util/module_load_anselm" %(main_folder);
-T = 100000000
+Tlocal = 100000000
 nmb_of_tests = 1000
 N = [1,2,3,4];
 
@@ -39,7 +39,7 @@ for index in range(len(N)):
     problem_name = "%s%d" %(gpu_problem_name,N[index])
     host_string = gpu_host_string[index]
     exec_path = gpu_exec_path
-    exec_name_full = "mpiexec -n %d %s %d %d" %(N[index], exec_name, T, nmb_of_tests)
+    exec_name_full = "mpiexec -n %d %s %d %d" %(N[index], exec_name, Tlocal, nmb_of_tests)
     batch_filename = os.path.join(batch_path, "%s.pbs" % (problem_name))
     write_pbs(problem_name, host_string, batch_filename, exec_path, exec_name_full, source_path)
     batchfile_list.append(batch_filename);
@@ -49,7 +49,7 @@ for index in range(len(N)):
     problem_name = "%s%d" %(cpu_problem_name,N[index])
     host_string = cpu_host_string[index]
     exec_path = cpu_exec_path
-    exec_name_full = "mpiexec -n %d %s %d %d" %(N[index], exec_name, T, nmb_of_tests)
+    exec_name_full = "mpiexec -n %d %s %d %d" %(N[index], exec_name, Tlocal, nmb_of_tests)
     batch_filename = os.path.join(batch_path, "%s.pbs" % (problem_name))
     write_pbs(problem_name, host_string, batch_filename, exec_path, exec_name_full, source_path)
     batchfile_list.append(batch_filename);

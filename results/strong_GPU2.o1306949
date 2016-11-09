@@ -1,0 +1,22 @@
+Benchmark started
+ T            = 100000000
+ Tlocal       = 50000000
+ nmb_of_tests = 1000
+ MPIsize      = 2
+ * MPIrank  = 0
+ * MPIrank  = 1
+
+ - allocation: 0.191484s
+1_GPU: from cuda x_arr[0]: 50000000.000000
+0_GPU: from cuda x_arr[0]: 0.000000
+1_GPU: from cuda x_arr[1000]: 50001000.000000
+0_GPU: from cuda x_arr[1000]: 1000.000000
+1_GPU: from cuda x_arr[49999999]: 99999999.000000
+0_GPU: from cuda x_arr[49999999]: 49999999.000000
+0. ( gridSize = 48829, blockSize = 1024 )
+1. ( gridSize = 48829, blockSize = 1024 )
+ - destruction: 0.000241041s
+
+---- TIMERS ----
+ GPU = 2.60506s
+
