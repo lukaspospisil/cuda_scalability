@@ -1,0 +1,10 @@
+Benchmark started
+ T            = 1000000000
+ Tlocal       = 1000000000
+ nmb_of_tests = 1000
+ MPIsize      = 1
+ * MPIrank  = 0
+
+
+[31mCUDA error:[0m out of memory /home/pos220/cuda_scalability/sample_strong.cu [33m137[0m
+

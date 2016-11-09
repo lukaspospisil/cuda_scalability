@@ -152,7 +152,7 @@ int main( int argc, char *argv[] )
 	timer = getUnixTime();
 			
 	for(int k=0;k<nmb_of_tests;k++){
-		mykernel<<<blockSize, gridSize>>>(x_arr, Tlocal, Tstart);
+		mykernel<<<gridSize, blockSize>>>(x_arr, Tlocal, Tstart);
 		gpuErrchk( cudaDeviceSynchronize() );
 		MPI_Barrier( MPI_COMM_WORLD ); 
 	}
@@ -183,7 +183,6 @@ int main( int argc, char *argv[] )
 			std::cout << MPIrank << ". ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
 		}
 		MPI_Barrier( MPI_COMM_WORLD );
-	}
 	}
 
 	/* print array */

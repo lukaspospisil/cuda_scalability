@@ -1,0 +1,34 @@
+Benchmark started
+ T            = 100000000
+ Tlocal       = 50000000
+ nmb_of_tests = 1000
+ MPIsize      = 2
+ * MPIrank  = 0
+ * MPIrank  = 1
+
+ - allocation: 0.308491s
+from cuda x_arr[1]: 50000001.000000
+from cuda x_arr[1]: 1.000000
+from cuda x_arr[10]: 50000010.000000
+from cuda x_arr[10]: 10.000000
+from cuda x_arr[100]: 50000100.000000
+from cuda x_arr[100]: 100.000000
+from cuda x_arr[1000]: 50001000.000000
+from cuda x_arr[1000]: 1000.000000
+from cuda x_arr[10000]: 50010000.000000
+from cuda x_arr[10000]: 10000.000000
+from cuda x_arr[100000]: 50100000.000000
+from cuda x_arr[100000]: 100000.000000
+from cuda x_arr[1000000]: 51000000.000000
+from cuda x_arr[1000000]: 1000000.000000
+from cuda x_arr[10000000]: 60000000.000000
+from cuda x_arr[10000000]: 10000000.000000
+from cuda x_arr[100000000]: out of range
+from cuda x_arr[100000000]: out of range
+0. ( gridSize = 48829, blockSize = 1024 )
+1. ( gridSize = 48829, blockSize = 1024 )
+ - destruction: 0.000595808s
+
+---- TIMERS ----
+ GPU = 5.3545s
+
