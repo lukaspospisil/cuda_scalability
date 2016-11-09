@@ -8,10 +8,6 @@
 /* if the lenght of vector is large, set this to zero */
 #define PRINT_VECTOR_CONTENT 0
 
-/* which CUDA calls to test? */
-#define CALL_NAIVE 1
-#define CALL_OPTIMAL 1
-
 /* for measuring time */
 double getUnixTime(void){
 	struct timespec tv;
@@ -57,6 +53,15 @@ __global__ void printkernel(double *x_arr, int mysize){
 	printf(" ]\n");
 }
 
+__global__ void printkernel_id(double *x_arr, int mysize, int id, int rank){
+	printf("%d_GPU: from cuda x_arr[%d]: ", rank, id);
+	if(id < mysize){
+		printf("%f", x_arr[id]);
+	} else {
+		printf("out of range");
+	}
+	printf("\n");
+}
 
 /* end of CUDA stuff */
 #endif
@@ -84,12 +89,14 @@ int main( int argc, char *argv[] )
 	MPI_Comm_rank(MPI_COMM_WORLD, &MPIrank);
 	MPI_Comm_size(MPI_COMM_WORLD, &MPIsize);	
 	
+	/* compute T */
+	int T = MPIsize*Tlocal;
+	int Tstart = MPIrank*Tlocal;
+	
 #ifdef USE_CUDA
 	/* CUDA stuff */
 	gpuErrchk( cudaDeviceReset() );
 #endif
-
-	int T = MPIsize*Tlocal; 
 
 	/* print problem info */
 	if(MPIrank == 0){ /* only master prints */
@@ -110,13 +117,8 @@ int main( int argc, char *argv[] )
 	double timer;
 	double timer1;
 	double timer2;
-	double timer3;
 	
 	double *x_arr; /* my array on GPU */
-	int Tstart; /* lower range of local part */
-
-	/* compute local length of array */
-	Tstart = MPIrank*Tlocal;
 
 #ifdef USE_CUDA
 /* ------- CUDA version ------- */
@@ -130,41 +132,37 @@ int main( int argc, char *argv[] )
 		std::cout << " - allocation: " << getUnixTime() - timer << "s" << std::endl;
 	}
 		
-	/* fill array */
-	if(CALL_NAIVE){
-		/* the easiest call */
-		timer = getUnixTime();
+	/* warm up */
+	mykernel<<<1,1>>>(x_arr,1,1);
+	gpuErrchk( cudaDeviceSynchronize() );
+	MPI_Barrier( MPI_COMM_WORLD ); 	
+		
+	/* compute optimal parameters of the call */
+	gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel, 0, 0) );
+	gridSize = (Tlocal + blockSize - 1)/ blockSize;
 
-		for(int k=0;k<nmb_of_tests;k++){
-			mykernel<<<1, Tlocal>>>(x_arr, Tlocal, Tstart);
-			gpuErrchk( cudaDeviceSynchronize() ); /* synchronize threads after computation */
-			MPI_Barrier( MPI_COMM_WORLD ); /* synchronize MPI processes after computation */
-		}
-
-		timer1 = getUnixTime() - timer;
+	timer = getUnixTime();
+			
+	for(int k=0;k<nmb_of_tests;k++){
+		mykernel<<<gridSize, blockSize>>>(x_arr, Tlocal, Tstart);
+		gpuErrchk( cudaDeviceSynchronize() );
+		MPI_Barrier( MPI_COMM_WORLD ); 
 	}
 
-	if(CALL_OPTIMAL){
-		/* compute optimal parameters of the call */
-		gpuErrchk( cudaOccupancyMaxPotentialBlockSize( &minGridSize, &blockSize,mykernel, 0, 0) );
-		gridSize = (Tlocal + blockSize - 1)/ blockSize;
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 0, MPIrank);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, 1000, MPIrank);
+	gpuErrchk( cudaDeviceSynchronize() );
+	printkernel_id<<<1,1>>>(x_arr, Tlocal, Tlocal-1, MPIrank);
+	gpuErrchk( cudaDeviceSynchronize() );
 
-		timer = getUnixTime();
-			
-		for(int k=0;k<nmb_of_tests;k++){
-			mykernel<<<blockSize, gridSize>>>(x_arr, Tlocal, Tstart);
-			gpuErrchk( cudaDeviceSynchronize() );
-			MPI_Barrier( MPI_COMM_WORLD ); 
+	timer1 = getUnixTime() - timer;
+	for(int k=0;k<MPIsize;k++){
+		if(k==MPIrank){
+			/* my turn - I am printing */
+			std::cout << MPIrank << ". ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
 		}
-
-		timer2 = getUnixTime() - timer;
-		for(int k=0;k<MPIsize;k++){
-			if(k==MPIrank){
-				/* my turn - I am printing */
-				std::cout << MPIrank << ". ( gridSize = " << gridSize << ", blockSize = " << blockSize << " )" << std::endl;
-			}
-			MPI_Barrier( MPI_COMM_WORLD );
-		}
+		MPI_Barrier( MPI_COMM_WORLD );
 	}
 
 	/* print array */
@@ -222,7 +220,7 @@ int main( int argc, char *argv[] )
 		}
 		MPI_Barrier( MPI_COMM_WORLD );
 	}
-	timer3 = getUnixTime() - timer;
+	timer2 = getUnixTime() - timer;
 	MPI_Barrier( MPI_COMM_WORLD );
 		
 	/* print array */
@@ -270,16 +268,9 @@ int main( int argc, char *argv[] )
 		std::cout << std::endl;
 		std::cout << "---- TIMERS ----" << std::endl;
 #ifdef USE_CUDA
-		if(CALL_NAIVE){
-			std::cout << " GPU naive   = " << timer1 << "s" << std::endl;
-		}
-
-		if(CALL_OPTIMAL){
-			std::cout << " GPU optimal = " << timer2 << "s" << std::endl;
-		}
-
+		std::cout << " GPU = " << timer1 << "s" << std::endl;
 #else
-		std::cout << " CPU seq    = " << timer3 << "s" << std::endl;
+		std::cout << " CPU = " << timer2 << "s" << std::endl;
 #endif
 		std::cout << std::endl;
 	}
