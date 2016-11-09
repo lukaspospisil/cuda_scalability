@@ -26,10 +26,7 @@ gpu_host_string = ["select=1:ncpus=1:mpiprocs=1:host=cn200,walltime=00:20:00",\
 gpu_problem_name = "weak_GPU";
 
 cpu_exec_path = "%s/build_cpu/" %(main_folder);
-cpu_host_string = ["select=1:ncpus=1:mpiprocs=1,walltime=00:20:00",\
-                   "select=2:ncpus=1:mpiprocs=1,walltime=00:20:00",\
-                   "select=3:ncpus=1:mpiprocs=1,walltime=00:20:00",\
-                   "select=4:ncpus=1:mpiprocs=1,walltime=00:20:00"]
+cpu_host_string = gpu_host_string;
 cpu_problem_name = "weak_CPU";
 
 # GPU: generate bash scripts
