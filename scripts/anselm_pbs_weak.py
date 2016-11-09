@@ -12,7 +12,7 @@ import os, shutil
 username = "pos220"
 main_folder = "/home_lustre/pos220/cuda_scalability";
 batch_path = "%s/batch/" %(main_folder);
-exec_name = "./sample_strong"
+exec_name = "./sample_weak"
 source_path = "%s/util/module_load_anselm" %(main_folder);
 T = 100000000
 nmb_of_tests = 1000
@@ -23,14 +23,14 @@ gpu_host_string = ["select=1:ncpus=1:mpiprocs=1:host=cn200,walltime=00:20:00",\
                    "select=1:ncpus=1:mpiprocs=1:host=cn200+1:ncpus=1:mpiprocs=1:host=cn201,walltime=00:20:00",\
                    "select=1:ncpus=1:mpiprocs=1:host=cn200+1:ncpus=1:mpiprocs=1:host=cn201+1:ncpus=1:mpiprocs=1:host=cn202,walltime=00:20:00",\
                    "select=1:ncpus=1:mpiprocs=1:host=cn200+1:ncpus=1:mpiprocs=1:host=cn201+1:ncpus=1:mpiprocs=1:host=cn202+1:ncpus=1:mpiprocs=1:host=cn203,walltime=00:20:00"];
-gpu_problem_name = "strong_GPU";
+gpu_problem_name = "weak_GPU";
 
 cpu_exec_path = "%s/build_cpu/" %(main_folder);
 cpu_host_string = ["select=1:ncpus=1:mpiprocs=1,walltime=00:20:00",\
                    "select=2:ncpus=1:mpiprocs=1,walltime=00:20:00",\
                    "select=3:ncpus=1:mpiprocs=1,walltime=00:20:00",\
                    "select=4:ncpus=1:mpiprocs=1,walltime=00:20:00"]
-cpu_problem_name = "strong_CPU";
+cpu_problem_name = "weak_CPU";
 
 # GPU: generate bash scripts
 batchfile_list = [];
