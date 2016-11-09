@@ -53,8 +53,8 @@ for index in range(len(N)):
 
 
 # run bash scripts
-commit_pbs(batchfile_list)
+#commit_pbs(batchfile_list)
 
 # show the queue
-show_jobs(username)
+#show_jobs(username)
 
