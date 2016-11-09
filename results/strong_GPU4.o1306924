@@ -1,0 +1,33 @@
+Warning: Permanently added 'cn203.bullx,10.1.1.203' (RSA) to the list of known hosts.
+Benchmark started
+ T            = 100000000
+ Tlocal       = 25000000
+ nmb_of_tests = 1000
+ MPIsize      = 4
+ * MPIrank  = 2 * MPIrank  = 0
+
+ * MPIrank  = 1 * MPIrank  = 3
+
+
+ - allocation: 0.201442s
+1_GPU: from cuda x_arr[0]: 25000000.000000
+2_GPU: from cuda x_arr[0]: 50000000.000000
+3_GPU: from cuda x_arr[0]: 75000000.000000
+0_GPU: from cuda x_arr[0]: 0.000000
+1_GPU: from cuda x_arr[1000]: 25001000.000000
+2_GPU: from cuda x_arr[1000]: 50001000.000000
+0_GPU: from cuda x_arr[1000]: 1000.000000
+3_GPU: from cuda x_arr[1000]: 75001000.000000
+2_GPU: from cuda x_arr[24999999]: 74999999.000000
+1_GPU: from cuda x_arr[24999999]: 49999999.000000
+3_GPU: from cuda x_arr[24999999]: 99999999.000000
+0_GPU: from cuda x_arr[24999999]: 24999999.000000
+0. ( gridSize = 24415, blockSize = 1024 )
+1. ( gridSize = 24415, blockSize = 1024 )
+2. ( gridSize = 24415, blockSize = 1024 )
+3. ( gridSize = 24415, blockSize = 1024 )
+ - destruction: 0.000259161s
+
+---- TIMERS ----
+ GPU = 1.42577s
+
